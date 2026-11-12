@@ -1,0 +1,21 @@
+[package]
+name = "board"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+test = false        # ESP-only crate: no host tests, no doctests
+doctest = false
+bench = false
+
+[dependencies]
+esp-hal = { workspace = true, features = ["unstable"] }
+embedded-hal.workspace = true
+embedded-hal-bus.workspace = true
+
+mipidsi.workspace = true
+embedded-graphics-core.workspace = true
+embedded-sdmmc.workspace = true
+
+static_cell.workspace = true
+log.workspace = true

@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+members = ["crates/board", "launcher"]
+
+[workspace.dependencies]
+board = { path = "crates/board" }
+
+esp-hal = { version = "~1.2.2", features = ["esp32s3", "log-04", "unstable"] }
+embedded-hal = "1.0.0"
+embedded-hal-bus = "0.3.0"
+embedded-sdmmc = "0.10.0"
+mipidsi = "0.10.0"
+embedded-storage = "0.3.2"
+esp-storage = "0.10.0"
+esp-bootloader-esp-idf = { version = "0.6.0", features = ["esp32s3", "log-04"] }
+esp-alloc = { version = "0.11.0", features = ["esp32s3"] }
+esp-backtrace = { version = "0.20.0", features = [
+  "esp32s3",
+  "panic-handler",
+  "println",
+] }
+esp-println = { version = "0.18.0", features = ["esp32s3", "log-04"] }
+embedded-graphics = "0.8"
+embedded-graphics-core = "0.4"
+static_cell = "2.1.1"
+log                    = "0.4.27"
+critical-section = "1.2.0"
+sha2 = "0.11.1"
+
+
+[profile.dev]
+opt-level = "s"
+
+[profile.release]
+codegen-units = 1
+debug         = 2
+lto           = 'fat'
+opt-level     = 's'
