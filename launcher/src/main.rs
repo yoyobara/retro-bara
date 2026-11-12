@@ -15,7 +15,7 @@ use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::mono_font::ascii::FONT_6X10;
 use embedded_graphics::pixelcolor::{Rgb565, RgbColor as _};
 use embedded_graphics::text::{Baseline, Text};
-use embedded_sdmmc::{LfnBuffer, TimeSource, Timestamp, VolumeIdx, VolumeManager};
+use embedded_sdmmc::{TimeSource, Timestamp, VolumeIdx, VolumeManager};
 use esp_backtrace as _;
 use esp_bootloader_esp_idf::esp_app_desc;
 use esp_hal::clock::CpuClock;
@@ -73,23 +73,15 @@ fn list_root_dir(sd_card: board::BoardSdCard) -> Result<Vec<String>, String> {
         .map_err(|e| format!("{e:?}"))?;
     let root = volume.open_root_dir().map_err(|e| format!("{e:?}"))?;
 
-    let mut lfn_storage = [0u8; 255 * 3];
-    let mut lfn_buffer = LfnBuffer::new(&mut lfn_storage);
     let mut entries = Vec::new();
-
-    root.iterate_dir_lfn(&mut lfn_buffer, |entry, long_name| {
-        if entry.attributes.is_volume() || entry.attributes.is_hidden() {
-            return ControlFlow::Continue(());
+    root.iterate_dir(|entry| {
+        if !entry.attributes.is_volume() && !entry.attributes.is_hidden() {
+            entries.push(if entry.attributes.is_directory() {
+                format!("{}/", entry.name)
+            } else {
+                format!("{}  ({} B)", entry.name, entry.size)
+            });
         }
-        let name = match long_name {
-            Some(name) => name.to_string(),
-            None => entry.name.to_string(),
-        };
-        entries.push(if entry.attributes.is_directory() {
-            format!("{name}/")
-        } else {
-            format!("{name}  ({} B)", entry.size)
-        });
         ControlFlow::Continue(())
     })
     .map_err(|e| format!("{e:?}"))?;
