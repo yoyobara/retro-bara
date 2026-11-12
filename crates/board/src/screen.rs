@@ -9,7 +9,7 @@ use mipidsi::{
     Builder, Display, InitError,
     interface::{SpiError, SpiInterface},
     models::ILI9341Rgb565,
-    options::{ColorOrder::Rgb, Orientation, Rotation::Deg90},
+    options::{ColorOrder::Rgb, Orientation, Rotation::Deg180},
 };
 
 pub type ScreenInitError<SPI, DC, RST> = InitError<
@@ -46,7 +46,7 @@ where
         let display = Builder::new(ILI9341Rgb565, di)
             .reset_pin(rst_pin)
             .display_size(240, 320)
-            .orientation(Orientation::new().rotate(Deg90))
+            .orientation(Orientation::new().rotate(Deg180))
             .color_order(Rgb)
             .init(delay)?;
 
