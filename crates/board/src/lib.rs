@@ -51,9 +51,8 @@ impl Board {
             peripherals.GPIO48,
         );
 
-        // TODO: real SD MISO/CS pins
         let sd_miso = peripherals.GPIO4;
-        let sd_cs_pin = peripherals.GPIO15;
+        let sd_cs_pin = peripherals.GPIO2;
 
         let spi = Spi::new(peripherals.SPI2, spi_config(SPI_INIT_FREQUENCY))
             .expect("invalid SPI config")
