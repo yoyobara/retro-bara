@@ -23,7 +23,7 @@ esp-println = { version = "0.18.0", features = ["esp32s3", "log-04"] }
 embedded-graphics = "0.8"
 embedded-graphics-core = "0.4"
 static_cell = "2.1.1"
-log                    = "0.4.27"
+log = "0.4.27"
 critical-section = "1.2.0"
 sha2 = "0.11.1"
 
@@ -33,6 +33,6 @@ opt-level = "s"
 
 [profile.release]
 codegen-units = 1
-debug         = 2
-lto           = 'fat'
-opt-level     = 's'
+debug = 2
+lto = 'fat'
+opt-level = 's'
