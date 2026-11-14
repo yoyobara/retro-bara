@@ -2,13 +2,10 @@
 include = ["esp-config.toml"]
 
 [target.xtensa-esp32s3-none-elf]
-runner = "espflash flash --monitor --chip esp32s3"
+runner = "scripts/flash.sh"
 
 [build]
-rustflags = [
-  "-C", "link-arg=-nostartfiles",
-  "-Z", "stack-protector=all",
-]
+rustflags = ["-C", "link-arg=-nostartfiles", "-Z", "stack-protector=all"]
 
 target = "xtensa-esp32s3-none-elf"
 

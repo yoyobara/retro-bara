@@ -3,42 +3,45 @@
 
 extern crate alloc;
 
-use alloc::format;
-use alloc::string::{String, ToString as _};
-use alloc::vec::Vec;
-use core::ops::ControlFlow;
+mod flasher;
+mod games;
+mod meta;
+mod ui;
 
-use embedded_graphics::Drawable as _;
-use embedded_graphics::draw_target::DrawTarget;
-use embedded_graphics::geometry::Point;
-use embedded_graphics::mono_font::MonoTextStyle;
-use embedded_graphics::mono_font::ascii::FONT_6X10;
-use embedded_graphics::pixelcolor::{Rgb565, RgbColor as _};
-use embedded_graphics::text::{Baseline, Text};
-use embedded_sdmmc::{TimeSource, Timestamp, VolumeIdx, VolumeManager};
+use alloc::vec::Vec;
+
+use board::{BoardScreen, Button, Buttons};
 use esp_backtrace as _;
 use esp_bootloader_esp_idf::esp_app_desc;
 use esp_hal::clock::CpuClock;
+use esp_hal::delay::Delay;
+use log::{error, info};
+
+use crate::games::{Fs, Game, ICON_LEN, NoClock};
+use crate::ui::VISIBLE_ROWS;
 
 esp_app_desc!();
 
-const LINE_HEIGHT: i32 = 12;
-const MARGIN: i32 = 4;
+const POLL_INTERVAL_MS: u32 = 10;
+const LAUNCH_BUTTONS: &[Button] = &[Button::A, Button::Start];
+const DETAILS_BUTTONS: &[Button] = &[Button::B, Button::Select];
 
-/// No RTC on the board: every timestamp is the FAT epoch.
-struct NoClock;
+#[derive(Clone, Copy)]
+enum Mode {
+    List,
+    Details,
+}
 
-impl TimeSource for NoClock {
-    fn get_timestamp(&self) -> Timestamp {
-        Timestamp {
-            year_since_1970: 10, // 1980, the earliest FAT date
-            zero_indexed_month: 0,
-            zero_indexed_day: 0,
-            hours: 0,
-            minutes: 0,
-            seconds: 0,
-        }
-    }
+struct Launcher {
+    buttons: Buttons,
+    screen: BoardScreen,
+    flash: esp_storage::FlashStorage<'static>,
+    fs: Fs,
+    games: Vec<Game>,
+    selected: usize,
+    /// Index of the game shown in the first row.
+    top: usize,
+    icon_buf: [u8; ICON_LEN],
 }
 
 #[esp_hal::main]
@@ -48,59 +51,180 @@ fn main() -> ! {
     esp_alloc::heap_allocator!(size: 72 * 1024);
 
     let board::Board {
-        mut screen,
+        buttons,
+        screen,
         sd_card,
-        ..
+        flash,
     } = board::Board::new(peripherals);
-    screen.clear(Rgb565::BLACK).unwrap();
 
-    let lines = match list_root_dir(sd_card) {
-        Ok(entries) if entries.is_empty() => alloc::vec!["SD card is empty".to_string()],
-        Ok(entries) => entries,
-        Err(e) => alloc::vec!["SD card error:".to_string(), e],
+    let mut launcher = Launcher {
+        buttons,
+        screen,
+        flash,
+        fs: Fs::new(sd_card, NoClock),
+        games: Vec::new(),
+        selected: 0,
+        top: 0,
+        icon_buf: [0; ICON_LEN],
     };
-
-    draw_lines(&mut screen, &lines);
-
-    loop {}
+    launcher.run()
 }
 
-/// Returns one display line per entry in the SD card's root directory.
-fn list_root_dir(sd_card: board::BoardSdCard) -> Result<Vec<String>, String> {
-    let volume_mgr = VolumeManager::new(sd_card, NoClock);
-    let volume = volume_mgr
-        .open_volume(VolumeIdx(0))
-        .map_err(|e| format!("{e:?}"))?;
-    let root = volume.open_root_dir().map_err(|e| format!("{e:?}"))?;
+impl Launcher {
+    fn run(&mut self) -> ! {
+        self.load_games();
+        self.draw_list();
 
-    let mut entries = Vec::new();
-    root.iterate_dir(|entry| {
-        if !entry.attributes.is_volume() && !entry.attributes.is_hidden() {
-            entries.push(if entry.attributes.is_directory() {
-                format!("{}/", entry.name)
-            } else {
-                format!("{}  ({} B)", entry.name, entry.size)
-            });
+        let mut mode = Mode::List;
+        loop {
+            Delay::new().delay_millis(POLL_INTERVAL_MS);
+            let pressed = self.buttons.update().pressed;
+
+            mode = match mode {
+                _ if pressed.contains_any(LAUNCH_BUTTONS) => {
+                    self.launch();
+                    Mode::List
+                }
+                Mode::List if pressed.contains_any(DETAILS_BUTTONS) => {
+                    ui::draw_modal(&mut self.screen, &self.games[self.selected].meta);
+                    Mode::Details
+                }
+                Mode::List => {
+                    if pressed.is_pressed(Button::Up) && self.selected > 0 {
+                        self.select(self.selected - 1);
+                    } else if pressed.is_pressed(Button::Down)
+                        && self.selected + 1 < self.games.len()
+                    {
+                        self.select(self.selected + 1);
+                    }
+                    Mode::List
+                }
+                Mode::Details if pressed.any() => {
+                    self.draw_list();
+                    Mode::List
+                }
+                Mode::Details => Mode::Details,
+            };
         }
-        ControlFlow::Continue(())
-    })
-    .map_err(|e| format!("{e:?}"))?;
+    }
 
-    Ok(entries)
-}
+    /// Scans the SD card until at least one game is found.
+    fn load_games(&mut self) {
+        loop {
+            match games::scan(&self.fs) {
+                Ok(games) if !games.is_empty() => {
+                    info!("{} games found", games.len());
+                    self.games = games;
+                    self.selected = 0;
+                    self.top = 0;
+                    return;
+                }
+                Ok(_) => ui::draw_message(
+                    &mut self.screen,
+                    &[
+                        "No games",
+                        "Put games in /GAMES on the SD card",
+                        "Press any button to retry",
+                    ],
+                    false,
+                ),
+                Err(e) => {
+                    error!("scanning SD card: {e:?}");
+                    ui::draw_message(
+                        &mut self.screen,
+                        &[
+                            "SD card error",
+                            "Check the card is inserted",
+                            "Press any button to retry",
+                        ],
+                        true,
+                    );
+                }
+            }
+            self.wait_for_press();
+        }
+    }
 
-fn draw_lines<D>(target: &mut D, lines: &[String])
-where
-    D: DrawTarget<Color = Rgb565>,
-    D::Error: core::fmt::Debug,
-{
-    let style = MonoTextStyle::new(&FONT_6X10, Rgb565::WHITE);
-    let max_lines = (target.bounding_box().size.height as i32 - 2 * MARGIN) / LINE_HEIGHT;
+    fn select(&mut self, index: usize) {
+        let previous = self.selected;
+        self.selected = index;
 
-    for (i, line) in lines.iter().take(max_lines as usize).enumerate() {
-        let position = Point::new(MARGIN, MARGIN + i as i32 * LINE_HEIGHT);
-        Text::with_baseline(line, position, style, Baseline::Top)
-            .draw(target)
-            .unwrap();
+        if index < self.top {
+            self.top = index;
+            self.draw_rows();
+        } else if index >= self.top + VISIBLE_ROWS {
+            self.top = index + 1 - VISIBLE_ROWS;
+            self.draw_rows();
+        } else {
+            // Same window: only the highlight moves, so the icons don't have to be re-read.
+            self.draw_label(previous);
+            self.draw_label(index);
+        }
+        ui::draw_header(&mut self.screen, self.selected, self.games.len());
+    }
+
+    fn draw_list(&mut self) {
+        ui::draw_header(&mut self.screen, self.selected, self.games.len());
+        self.draw_rows();
+    }
+
+    fn draw_rows(&mut self) {
+        for slot in 0..VISIBLE_ROWS {
+            let index = self.top + slot;
+            let Some(game) = self.games.get(index) else {
+                ui::clear_row(&mut self.screen, slot);
+                continue;
+            };
+            let icon =
+                games::read_icon(&self.fs, game, &mut self.icon_buf).then_some(&self.icon_buf);
+            ui::draw_row_icon(&mut self.screen, slot, icon);
+            self.draw_label(index);
+        }
+    }
+
+    fn draw_label(&mut self, index: usize) {
+        let name = &self.games[index].meta.name;
+        ui::draw_row_label(
+            &mut self.screen,
+            index - self.top,
+            name,
+            index == self.selected,
+        );
+    }
+
+    /// Installs and boots the selected game. Only returns if that fails.
+    fn launch(&mut self) {
+        let game = &self.games[self.selected];
+        info!("launching {}", game.id);
+        ui::draw_progress_frame(&mut self.screen, &game.meta.name);
+
+        let screen = &mut self.screen;
+        let mut last = None;
+        let result = flasher::install(&self.fs, game, &mut self.flash, |stage, percent| {
+            if last != Some((stage, percent)) {
+                last = Some((stage, percent));
+                ui::draw_progress(screen, stage, percent);
+            }
+        });
+
+        match result {
+            Ok(()) => esp_hal::system::software_reset(),
+            Err(e) => {
+                error!("launching {}: {e:?}", game.id);
+                ui::draw_message(
+                    &mut self.screen,
+                    &["Launch failed", e.message(), "Press any button"],
+                    true,
+                );
+                self.wait_for_press();
+                self.draw_list();
+            }
+        }
+    }
+
+    fn wait_for_press(&mut self) {
+        while !self.buttons.update().pressed.any() {
+            Delay::new().delay_millis(POLL_INTERVAL_MS);
+        }
     }
 }
