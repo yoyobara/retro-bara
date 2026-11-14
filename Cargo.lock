@@ -117,6 +117,7 @@ dependencies = [
  "embedded-hal-bus",
  "embedded-sdmmc",
  "esp-hal",
+ "esp-storage",
  "log",
  "mipidsi",
  "static_cell",

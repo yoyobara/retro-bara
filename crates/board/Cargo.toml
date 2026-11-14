@@ -16,6 +16,7 @@ embedded-hal-bus.workspace = true
 mipidsi.workspace = true
 embedded-graphics-core.workspace = true
 embedded-sdmmc.workspace = true
+esp-storage.workspace = true
 
 static_cell.workspace = true
 log.workspace = true

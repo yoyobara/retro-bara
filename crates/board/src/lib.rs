@@ -14,6 +14,7 @@ use esp_hal::peripherals::Peripherals;
 use esp_hal::spi::Mode;
 use esp_hal::spi::master::{Config, Spi};
 use esp_hal::time::Rate;
+use esp_storage::FlashStorage;
 use log::{info, warn};
 use static_cell::{ConstStaticCell, StaticCell};
 
@@ -33,8 +34,8 @@ const SPI_FREQUENCY: Rate = Rate::from_mhz(20);
 pub struct Board {
     pub buttons: Buttons,
     pub screen: BoardScreen,
-    /// May be missing: check `num_bytes()` before using it.
     pub sd_card: BoardSdCard,
+    pub flash: FlashStorage<'static>,
 }
 
 impl Board {
@@ -74,6 +75,7 @@ impl Board {
             .expect("invalid SPI config");
 
         let screen = init_screen(bus, screen_cs, peripherals.GPIO19, peripherals.GPIO20);
+        let flash = FlashStorage::new(peripherals.FLASH);
 
         info!("board initialized");
 
@@ -81,6 +83,7 @@ impl Board {
             buttons,
             screen,
             sd_card,
+            flash,
         }
     }
 }
