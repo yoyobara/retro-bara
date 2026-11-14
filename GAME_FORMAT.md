@@ -93,7 +93,7 @@ not a raw ELF and not a merged image containing a bootloader or partition table.
 
 Requirements:
 
-- Built for `esp32s3` (target `xtensa-esp32s3-none-elf`), like `crates/game`.
+- Built for `esp32s3` (target `xtensa-esp32s3-none-elf`).
 - Must include an app descriptor (`esp_app_desc!()` from `esp-bootloader-esp-idf`),
   otherwise the second-stage bootloader refuses to boot it.
 - Size must not exceed the `ota_0` partition: **0x6E0000 bytes (7 040 KiB)**.
@@ -104,9 +104,9 @@ Requirements:
 Producing it from an ELF with `espflash`:
 
 ```sh
-cargo build --release -p game
+cargo build --release -p <your-game>
 espflash save-image --chip esp32s3 \
-    target/xtensa-esp32s3-none-elf/release/game GAME.BIN
+    target/xtensa-esp32s3-none-elf/release/<your-game> GAME.BIN
 ```
 
 The launcher writes `GAME.BIN` byte-for-byte to the start of `ota_0`, marks
