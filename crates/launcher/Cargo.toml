@@ -3,12 +3,6 @@ name = "launcher"
 version = "0.1.0"
 edition = "2024"
 
-[[bin]]
-name = "launcher"
-path = "src/main.rs"
-test = false
-bench = false
-
 [dependencies]
 board.workspace = true
 
