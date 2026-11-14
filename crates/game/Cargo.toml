@@ -1,0 +1,19 @@
+[package]
+name = "game"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+board.workspace = true
+
+esp-hal.workspace = true
+esp-bootloader-esp-idf.workspace = true
+esp-backtrace.workspace = true
+esp-println.workspace = true
+esp-alloc.workspace = true
+esp-storage.workspace = true
+embedded-storage.workspace = true
+
+embedded-sdmmc.workspace = true
+embedded-graphics.workspace = true
+sha2.workspace = true

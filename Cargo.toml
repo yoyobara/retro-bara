@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/board", "crates/launcher"]
+members = ["crates/board", "crates/launcher", "crates/game"]
 
 [workspace.dependencies]
 board = { path = "crates/board" }
