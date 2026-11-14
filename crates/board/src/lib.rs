@@ -18,7 +18,7 @@ use esp_storage::FlashStorage;
 use log::{info, warn};
 use static_cell::{ConstStaticCell, StaticCell};
 
-pub use buttons::{ButtonState, Buttons};
+pub use buttons::{Button, ButtonEvents, ButtonState, Buttons};
 pub use screen::Screen;
 
 pub type BoardSpiBus = Spi<'static, Blocking>;

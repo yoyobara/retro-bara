@@ -46,8 +46,7 @@ Any other files in the directory are ignored and may be used by the game itself
 
 ## `GAME.TOM` — metadata
 
-A small UTF-8 text file of `key = value` lines (a strict subset of TOML so that it
-can be parsed in `no_std` without a TOML crate):
+A small UTF-8 [TOML](https://toml.io) file with the keys below at the top level:
 
 ```toml
 format = 1
@@ -60,10 +59,10 @@ sha256 = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
 
 Rules:
 
-- One `key = value` pair per line. Blank lines and lines starting with `#` are ignored.
-- Integer values are bare decimal; string values are wrapped in double quotes.
-  Escapes inside strings are **not** supported, so strings can't contain `"`.
-- Unknown keys are ignored, so future fields can be added without breaking older launchers.
+- Any valid TOML is accepted: comments, basic or literal strings, escapes, etc.
+- Values must have the types in the table below (e.g. `format = "1"` is rejected).
+- Unknown keys and tables are ignored, so future fields can be added without breaking
+  older launchers.
 - The whole file must be at most **1 KiB**.
 
 | Key           | Type    | Required | Description                                                     |
