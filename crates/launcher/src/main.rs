@@ -8,8 +8,6 @@ mod games;
 mod meta;
 mod ui;
 
-use core::error::Error;
-
 use alloc::string::ToString;
 use alloc::vec::Vec;
 
