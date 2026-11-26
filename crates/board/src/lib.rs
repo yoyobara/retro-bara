@@ -54,7 +54,10 @@ impl Board {
 
         // SD cards release MISO between bytes; pull it up so idle reads as 0xFF instead of floating.
         // `Input` hands SPI a frozen signal, so `with_miso` keeps this pull.
-        let sd_miso = Input::new(peripherals.GPIO4, InputConfig::default().with_pull(Pull::Up));
+        let sd_miso = Input::new(
+            peripherals.GPIO4,
+            InputConfig::default().with_pull(Pull::Up),
+        );
         let sd_cs_pin = peripherals.GPIO2;
 
         let spi = Spi::new(peripherals.SPI2, spi_config(SPI_INIT_FREQUENCY))
