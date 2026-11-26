@@ -1,0 +1,6 @@
+format = 1
+name = "Snake"
+version = "0.1.0"
+author = "Yotam Barak"
+description = "Eat apples, grow longer, don't bite yourself."
+sha256 = "a6139a4d122ddd988731781b98deed4c40f86aee885bc4d3713ed4500f826a8e"

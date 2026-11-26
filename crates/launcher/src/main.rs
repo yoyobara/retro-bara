@@ -8,6 +8,7 @@ mod games;
 mod meta;
 mod ui;
 
+use alloc::string::ToString;
 use alloc::vec::Vec;
 
 use board::{BoardScreen, Button, Buttons};
@@ -129,7 +130,7 @@ impl Launcher {
                     false,
                 ),
                 Err(e) => {
-                    error!("scanning SD card: {e:?}");
+                    error!("scanning SD card: {}", e.to_string());
                     ui::draw_message(
                         &mut self.screen,
                         &[

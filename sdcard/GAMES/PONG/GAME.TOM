@@ -1,0 +1,6 @@
+format = 1
+name = "Pong"
+version = "0.1.0"
+author = "Yotam Barak"
+description = "Classic paddle-and-ball. First to 5 points wins."
+sha256 = "e9023f88cac0027011c0e3c74d41a030b826bd73da08269f1e945c456a4346f1"
