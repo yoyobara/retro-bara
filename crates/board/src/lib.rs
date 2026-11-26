@@ -9,7 +9,7 @@ use embedded_hal_bus::spi::RefCellDevice;
 use embedded_sdmmc::SdCard;
 use esp_hal::Blocking;
 use esp_hal::delay::Delay;
-use esp_hal::gpio::{Level, Output, OutputConfig, OutputPin};
+use esp_hal::gpio::{Input, InputConfig, Level, Output, OutputConfig, OutputPin, Pull};
 use esp_hal::peripherals::Peripherals;
 use esp_hal::spi::Mode;
 use esp_hal::spi::master::{Config, Spi};
@@ -52,7 +52,9 @@ impl Board {
             peripherals.GPIO48,
         );
 
-        let sd_miso = peripherals.GPIO4;
+        // SD cards release MISO between bytes; pull it up so idle reads as 0xFF instead of floating.
+        // `Input` hands SPI a frozen signal, so `with_miso` keeps this pull.
+        let sd_miso = Input::new(peripherals.GPIO4, InputConfig::default().with_pull(Pull::Up));
         let sd_cs_pin = peripherals.GPIO2;
 
         let spi = Spi::new(peripherals.SPI2, spi_config(SPI_INIT_FREQUENCY))
